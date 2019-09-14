@@ -1,0 +1,24 @@
+{
+  "name": "myndset",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LenaNguyen/MYndset.git"
+  },
+  "author": "Lena Nguyen",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/LenaNguyen/MYndset/issues"
+  },
+  "homepage": "https://github.com/LenaNguyen/MYndset#readme",
+  "dependencies": {
+    "@azure/cognitiveservices-textanalytics": "^4.0.0",
+    "@azure/ms-rest-js": "^2.0.4",
+    "dotenv": "^8.1.0"
+  }
+}
