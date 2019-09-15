@@ -7,12 +7,11 @@ var app = express();
 
 app.use(express.json());
 
-// const questions = [
-// 	"How was your day?",
-// 	"Are you tired?",
-// 	"How have you been feeling lately?",
-// 	"Do you think you have your priorities straight?"
-// ]
+const questions = [
+	"How was your day?",
+	"How have you been feeling lately?",
+	"Are you looking forward to tomorrow?"
+]
 
 // let today = new Date();
 // let date = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
@@ -33,10 +32,17 @@ const returnMoods = (moods, res) => {
 }
 
 app.post('/api/detectMindset', async (req, res) => {
+	const qnas = [];
+	for (let i = 0; i < req.body.length; i++) {
+		qnas.push({ question: questions[i], answer: req.body[i].text, key: i });
+	}
 	const analysis = await analyseSentiment(req.body);
 	const scores = await analysis.map(val => val.score);
 	const meanScore = await mean(scores);
-	const response = await determineMood(meanScore);
+	let response = await determineMood(meanScore);
+
+	response['qnas'] = qnas;
+	addMood(response);
 	res.status(200).send(response);
 });
 
