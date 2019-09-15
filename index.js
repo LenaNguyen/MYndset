@@ -3,9 +3,10 @@ const { determineMood } = require('./services/mindsetService');
 const { mean, formatFirebaseData } = require('./utils/helper');
 const { fetchMoods, addMood } = require('./firebase/moodActions');
 var express = require('express');
+var cors = require('cors');
 var app = express();
 
-app.use(express.json());
+app.use([express.json(), cors()]);
 
 const questions = [
 	"How was your day?",
