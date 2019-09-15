@@ -1,33 +1,47 @@
-const CognitiveServicesCredentials = require("@azure/ms-rest-js");
-const TextAnalyticsAPIClient = require("@azure/cognitiveservices-textanalytics");
+const { analyseSentiment } = require('./services/azure');
+const { determineMood } = require('./services/mindsetService');
+const { mean, formatFirebaseData } = require('./utils/helper');
+const { fetchMoods, addMood } = require('./firebase/moodActions');
+var express = require('express');
+var app = express();
 
-const key_var = 'TEXT_ANALYTICS_SUBSCRIPTION_KEY';
-if (!process.env[key_var]) {
-	throw new Error('please set/export the following environment variable: ' + key_var);
+app.use(express.json());
+
+// const questions = [
+// 	"How was your day?",
+// 	"Are you tired?",
+// 	"How have you been feeling lately?",
+// 	"Do you think you have your priorities straight?"
+// ]
+
+// let today = new Date();
+// let date = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
+
+// const moods = [
+// 	{ date, score: 0.23, mood: 'upset', comment: 'I felt pretty sad.' },
+// 	{ date, score: 0.83, mood: 'happy', comment: 'I felt pretty happy!' },
+// 	{ date, score: 0.63, mood: 'neutral', comment: 'I felt pretty okay.' }
+// ];
+
+// moods.forEach(mood => {
+// 	addMood(mood);
+// })
+
+const returnMoods = (moods, res) => {
+	const formattedMoods = formatFirebaseData(moods);
+	res.status(200).send(formattedMoods);
 }
-const subscription_key = process.env[key_var];
 
-const endpoint_var = 'TEXT_ANALYTICS_ENDPOINT';
-if (!process.env[endpoint_var]) {
-	throw new Error('please set/export the following environment variable: ' + endpoint_var);
-}
-const endpoint = process.env[endpoint_var];
+app.post('/api/detectMindset', async (req, res) => {
+	const analysis = await analyseSentiment(req.body);
+	const scores = await analysis.map(val => val.score);
+	const meanScore = await mean(scores);
+	const response = await determineMood(meanScore);
+	res.status(200).send(response);
+});
 
-const creds = new CognitiveServicesCredentials.ApiKeyCredentials({ inHeader: { 'Ocp-Apim-Subscription-Key': subscription_key } });
-const client = new TextAnalyticsAPIClient.TextAnalyticsClient(creds, endpoint);
+app.get('/api/moods', (req, res) => {
+	const moods = fetchMoods(returnMoods, res);
+});
 
-const inputDocuments = {
-	documents: [
-		{ language: "en", id: "1", text: "I had the best day of my life." }
-	]
-}
-
-const operation = client.sentiment({ multiLanguageBatchInput: inputDocuments })
-operation
-	.then(result => {
-		console.log(result.documents);
-	})
-	.catch(err => {
-		throw err;
-	});
-
+app.listen(process.env.PORT || 3000);
