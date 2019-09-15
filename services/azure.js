@@ -19,13 +19,17 @@ const client = new TextAnalyticsAPIClient.TextAnalyticsClient(creds, endpoint);
 
 analyseSentiment = async input => {
 	let inputDocuments = {
-		documents: input
+		documents: []
 	}
+	if (Array.isArray(input))
+		inputDocuments.documents = input;
+	else
+		inputDocuments.documents.push(input);
 	try {
 		const operation = await client.sentiment({ multiLanguageBatchInput: inputDocuments });
 		return operation.documents;
 	} catch (e) {
-		console.Error(e);
+		throw new Error(e);
 	}
 }
 

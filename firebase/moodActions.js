@@ -1,7 +1,6 @@
 const { moodRef } = require('./firebase');
 
 const addMood = moodData => {
-	console.log(moodData);
 	moodRef.push(moodData);
 }
 

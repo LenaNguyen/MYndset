@@ -6,7 +6,7 @@ var express = require('express');
 var cors = require('cors');
 var app = express();
 
-app.use([express.json(), cors()]);
+app.use([express.json(), cors(), express.urlencoded({ extended: true })]);
 
 const questions = [
 	"How was your day?",
@@ -14,18 +14,9 @@ const questions = [
 	"Are you looking forward to tomorrow?"
 ]
 
-// let today = new Date();
+let today = new Date();
+let date = today.getDate();
 // let date = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
-
-// const moods = [
-// 	{ date, score: 0.23, mood: 'upset', comment: 'I felt pretty sad.' },
-// 	{ date, score: 0.83, mood: 'happy', comment: 'I felt pretty happy!' },
-// 	{ date, score: 0.63, mood: 'neutral', comment: 'I felt pretty okay.' }
-// ];
-
-// moods.forEach(mood => {
-// 	addMood(mood);
-// })
 
 const returnMoods = (moods, res) => {
 	const formattedMoods = formatFirebaseData(moods);
@@ -33,22 +24,57 @@ const returnMoods = (moods, res) => {
 }
 
 app.post('/api/detectMindset', async (req, res) => {
-	const qnas = [];
-	for (let i = 0; i < req.body.length; i++) {
-		qnas.push({ question: questions[i], answer: req.body[i].text, key: i });
-	}
-	const analysis = await analyseSentiment(req.body);
-	const scores = await analysis.map(val => val.score);
-	const meanScore = await mean(scores);
-	let response = await determineMood(meanScore);
+	try {
+		const language = 'en';
+		let input = req.body;
+		let qnas = [];
 
-	response['qnas'] = qnas;
-	addMood(response);
-	res.status(200).send(response);
+		//fix voiceflow formatting	
+		if (typeof req.body === 'object') {
+			let answerObjs = Object.keys(input)[0].split(",");
+			texts = answerObjs.map(i => {
+				keyVal = i.split(':');
+				return keyVal[1];
+			})
+			input = [];
+			for (let i = 0; i < answerObjs.length; i++) {
+				let obj = { text: texts[i], language, id: i.toString() }
+				input.push(obj);
+			}
+		}
+
+		for (let i = 0; i < input.length; i++) {
+			qnas.push({ question: questions[i], answer: input[i].text, key: i });
+		}
+
+		const analysis = await analyseSentiment(input);
+		const scores = await analysis.map(val => val.score);
+		const meanScore = await mean(scores);
+		let response = await determineMood(meanScore);
+
+		response['qnas'] = qnas;
+		response['date'] = date;
+		addMood(response);
+		res.status(200).send(response);
+	} catch (e) {
+		console.log(e)
+		res.status(500).send({ message: 'oops!' });
+	}
 });
 
 app.get('/api/moods', (req, res) => {
 	const moods = fetchMoods(returnMoods, res);
 });
+
+app.post('/api/test', (req, res) => {
+	res.status(200).send(req.body);
+})
+
+app.use((err, req, res, next) => {
+	res.status(500).json({
+		message: err.message,
+		error: err
+	});
+})
 
 app.listen(process.env.PORT || 3000);
